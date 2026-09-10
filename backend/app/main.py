@@ -17,11 +17,20 @@ app = FastAPI(
 )
 
 
+def normalize_origin(origin: str) -> str:
+    """Normalize origin string by stripping whitespace, surrounding quotes, and trailing slashes."""
+    return origin.strip().strip("'\"").rstrip("/")
+
+
 def get_allowed_origins() -> List[str]:
     """Retrieve allowed CORS origins from environment or default to local dev."""
     raw_origins = os.getenv("ALLOWED_ORIGINS", "")
     if raw_origins:
-        origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+        origins: List[str] = []
+        for origin in raw_origins.split(","):
+            cleaned = normalize_origin(origin)
+            if cleaned and cleaned not in origins:
+                origins.append(cleaned)
         if origins:
             return origins
     return [
@@ -30,9 +39,23 @@ def get_allowed_origins() -> List[str]:
     ]
 
 
+class ProductionCORSMiddleware(CORSMiddleware):
+    """CORS middleware that dynamically resolves and normalizes allowed origins."""
+
+    def is_allowed_origin(self, origin: str) -> bool:
+        allowed = get_allowed_origins()
+        cleaned = normalize_origin(origin)
+        allowed_normalized = [normalize_origin(a) for a in allowed]
+        return (
+            cleaned in allowed_normalized
+            or origin in allowed
+            or cleaned.lower() in [a.lower() for a in allowed_normalized]
+        )
+
+
 # Configure CORS middleware with restricted methods and headers
 app.add_middleware(
-    CORSMiddleware,
+    ProductionCORSMiddleware,
     allow_origins=get_allowed_origins(),
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],

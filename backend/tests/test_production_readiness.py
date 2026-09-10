@@ -13,8 +13,13 @@ from app.services.github_service import normalize_github_input
 from app.services.ai_service import build_analysis_prompt
 
 
+from fastapi.testclient import TestClient
+
 class TestProductionReadinessHardening(unittest.TestCase):
     """Test suite verifying production hardening requirements."""
+
+    def setUp(self):
+        self.client = TestClient(app)
 
     def test_cors_origin_parsing_with_commas_and_whitespace(self):
         """Verify ALLOWED_ORIGINS handles multiple comma-separated origins with extra whitespace."""
@@ -22,12 +27,84 @@ class TestProductionReadinessHardening(unittest.TestCase):
             origins = get_allowed_origins()
             self.assertEqual(origins, ["https://example.vercel.app", "https://custom-domain.com"])
 
+    def test_cors_origin_parsing_with_trailing_slashes_and_quotes(self):
+        """Verify ALLOWED_ORIGINS strips trailing slashes and quotes cleanly."""
+        with patch.dict(os.environ, {"ALLOWED_ORIGINS": " 'https://github-roast-sepia.vercel.app/' , \"https://preview.vercel.app///\" "}):
+            origins = get_allowed_origins()
+            self.assertEqual(origins, ["https://github-roast-sepia.vercel.app", "https://preview.vercel.app"])
+
     def test_cors_origin_parsing_fallback_on_empty(self):
         """Verify fallback to localhost origins when ALLOWED_ORIGINS is empty or unset."""
         with patch.dict(os.environ, {"ALLOWED_ORIGINS": "   "}):
             origins = get_allowed_origins()
             self.assertIn("http://localhost:5173", origins)
             self.assertIn("http://127.0.0.1:5173", origins)
+
+    def test_cors_options_preflight_production_success(self):
+        """Verify OPTIONS /api/github/validate succeeds with 200 and mirrors allowed origin."""
+        with patch.dict(os.environ, {"ALLOWED_ORIGINS": "https://github-roast-sepia.vercel.app"}):
+            res = self.client.options(
+                "/api/github/validate",
+                headers={
+                    "Origin": "https://github-roast-sepia.vercel.app",
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "content-type",
+                },
+            )
+            self.assertIn(res.status_code, (200, 204))
+            self.assertEqual(
+                res.headers.get("access-control-allow-origin"),
+                "https://github-roast-sepia.vercel.app",
+            )
+            self.assertIn("POST", res.headers.get("access-control-allow-methods", ""))
+            self.assertTrue(
+                "content-type" in res.headers.get("access-control-allow-headers", "").lower()
+            )
+
+    def test_cors_options_preflight_trailing_slash_env_handled(self):
+        """Verify OPTIONS preflight succeeds even when ALLOWED_ORIGINS was configured with a trailing slash."""
+        with patch.dict(os.environ, {"ALLOWED_ORIGINS": "https://github-roast-sepia.vercel.app/"}):
+            res = self.client.options(
+                "/api/github/validate",
+                headers={
+                    "Origin": "https://github-roast-sepia.vercel.app",
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "content-type",
+                },
+            )
+            self.assertIn(res.status_code, (200, 204))
+            self.assertEqual(
+                res.headers.get("access-control-allow-origin"),
+                "https://github-roast-sepia.vercel.app",
+            )
+
+    def test_cors_options_preflight_unauthorized_origin_rejected(self):
+        """Verify OPTIONS preflight from unauthorized origin is rejected and does not return allow-origin header."""
+        with patch.dict(os.environ, {"ALLOWED_ORIGINS": "https://github-roast-sepia.vercel.app"}):
+            res = self.client.options(
+                "/api/github/validate",
+                headers={
+                    "Origin": "https://unauthorized-malicious.com",
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "content-type",
+                },
+            )
+            # Starlette returns 400 Bad Request for disallowed CORS origin
+            self.assertNotEqual(res.status_code, 200)
+            self.assertIsNone(res.headers.get("access-control-allow-origin"))
+
+    def test_cors_simple_request_allowed_origin(self):
+        """Verify simple GET/POST responses include Access-Control-Allow-Origin for allowed origin."""
+        with patch.dict(os.environ, {"ALLOWED_ORIGINS": "https://github-roast-sepia.vercel.app"}):
+            res = self.client.get(
+                "/health",
+                headers={"Origin": "https://github-roast-sepia.vercel.app"},
+            )
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(
+                res.headers.get("access-control-allow-origin"),
+                "https://github-roast-sepia.vercel.app",
+            )
 
     def test_input_length_limit_normalize_github_input(self):
         """Verify normalize_github_input rejects inputs exceeding 255 characters."""
