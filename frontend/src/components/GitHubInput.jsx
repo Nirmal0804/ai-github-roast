@@ -18,12 +18,12 @@ export default function GitHubInput({ onSubmit, isLoading, initialValue = '' }) 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full space-y-3">
-      <div className="relative flex flex-col sm:flex-row gap-2.5 p-1.5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl shadow-purple-950/20 backdrop-blur-xl focus-within:border-purple-500/80 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
+    <form onSubmit={handleSubmit} className="w-full space-y-3.5">
+      <div className="relative flex flex-col sm:flex-row gap-2.5 p-2 rounded-2xl glass-input-container transition-all duration-300 focus-within:border-[rgba(168,85,247,0.6)] focus-within:ring-2 focus-within:ring-[rgba(168,85,247,0.25)] focus-within:shadow-[0_0_30px_rgba(168,85,247,0.2)]">
         <div className="relative flex-1 flex items-center">
-          <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
+          <div className="absolute left-4 flex items-center pointer-events-none text-[#C4B5D4]">
             <svg
-              className="w-5 h-5"
+              className="w-5 h-5 text-[#A855F7]"
               fill="currentColor"
               viewBox="0 0 24 24"
               aria-hidden="true"
@@ -41,7 +41,7 @@ export default function GitHubInput({ onSubmit, isLoading, initialValue = '' }) 
             onChange={(e) => setValue(e.target.value)}
             disabled={isLoading}
             placeholder="Enter GitHub username or profile URL"
-            className="w-full pl-11 pr-8 py-3.5 sm:py-3 bg-transparent text-slate-100 placeholder-slate-500 focus:outline-none text-sm sm:text-base font-medium disabled:opacity-50"
+            className="w-full pl-12 pr-9 py-3.5 sm:py-3 bg-transparent text-white placeholder-[#8F7D9E] focus:outline-none text-sm sm:text-base font-medium disabled:opacity-50 tracking-wide"
             autoComplete="off"
             spellCheck="false"
           />
@@ -50,7 +50,7 @@ export default function GitHubInput({ onSubmit, isLoading, initialValue = '' }) 
               type="button"
               onClick={() => setValue('')}
               disabled={isLoading}
-              className="absolute right-3 text-slate-500 hover:text-slate-300 transition-colors p-1"
+              className="absolute right-3 text-[#8F7D9E] hover:text-white transition-colors p-1"
               aria-label="Clear input"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,7 +63,7 @@ export default function GitHubInput({ onSubmit, isLoading, initialValue = '' }) 
         <button
           type="submit"
           disabled={isLoading || !value.trim()}
-          className="relative inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3 sm:py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-purple-600 via-purple-500 to-pink-600 hover:from-purple-500 hover:via-purple-400 hover:to-pink-500 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-purple-900/30 hover:shadow-purple-700/40 cursor-pointer whitespace-nowrap shrink-0"
+          className="btn-purple-gradient relative inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3 rounded-xl font-bold text-sm text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer whitespace-nowrap shrink-0 shadow-lg shadow-[#6D28A8]/30"
         >
           {isLoading ? (
             <>
@@ -82,23 +82,24 @@ export default function GitHubInput({ onSubmit, isLoading, initialValue = '' }) 
         </button>
       </div>
 
-      {/* Helper text with sample profile chips */}
-      <div className="flex items-center justify-between flex-wrap gap-2 text-xs text-slate-400 px-1.5">
-        <span>Enter a username or <code className="text-slate-300 font-mono text-[11px] bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">github.com/profile</code> URL</span>
-        <div className="flex items-center gap-1.5">
-          <span className="text-slate-500">Try:</span>
+      {/* Sample username chips in glass styling */}
+      <div className="flex items-center justify-between flex-wrap gap-2 text-xs text-[#C4B5D4] px-2">
+        <span className="text-[#C4B5D4]/80">
+          Enter a username or <code className="text-white font-mono text-[11px] bg-[rgba(63,13,99,0.35)] px-2 py-0.5 rounded border border-[rgba(168,85,247,0.2)]">github.com/profile</code>
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[#8F7D9E]">Try:</span>
           <button
             type="button"
             onClick={() => handleSampleClick('torvalds')}
-            className="text-purple-400 hover:text-purple-300 hover:underline font-mono cursor-pointer"
+            className="px-2.5 py-0.5 rounded-lg text-xs font-mono text-[#A855F7] hover:text-white bg-[rgba(63,13,99,0.30)] hover:bg-[rgba(109,40,168,0.40)] border border-[rgba(168,85,247,0.20)] hover:border-[rgba(168,85,247,0.40)] transition-all cursor-pointer"
           >
             torvalds
           </button>
-          <span className="text-slate-600">·</span>
           <button
             type="button"
             onClick={() => handleSampleClick('shadcn')}
-            className="text-purple-400 hover:text-purple-300 hover:underline font-mono cursor-pointer"
+            className="px-2.5 py-0.5 rounded-lg text-xs font-mono text-[#A855F7] hover:text-white bg-[rgba(63,13,99,0.30)] hover:bg-[rgba(109,40,168,0.40)] border border-[rgba(168,85,247,0.20)] hover:border-[rgba(168,85,247,0.40)] transition-all cursor-pointer"
           >
             shadcn
           </button>

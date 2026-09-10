@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const RAW_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = RAW_API_BASE_URL.replace(/\/+$/, '');
 
 /**
  * Validate a GitHub username or URL via backend API and retrieve profile data.
@@ -21,29 +22,29 @@ export async function validateGithubInput(input) {
       body: JSON.stringify({ input: trimmed }),
     });
   } catch (networkError) {
-    throw new Error("Couldn't reach GitHub right now. Please try again.");
+    throw new Error('Unable to reach the analysis server. Check your connection and try again.');
   }
 
   if (!response.ok) {
     let errorDetail = '';
     try {
       const errorJson = await response.json();
-      errorDetail = errorJson.detail;
+      errorDetail = typeof errorJson.detail === 'string' ? errorJson.detail : '';
     } catch {
       // response wasn't JSON
     }
 
     if (response.status === 404) {
-      throw new Error(errorDetail || 'GitHub user not found. Check the username or URL.');
+      throw new Error(errorDetail || 'GitHub profile not found. Check the username or profile URL.');
     }
-    if (response.status === 400) {
+    if (response.status === 400 || response.status === 422) {
       throw new Error(errorDetail || 'Enter a valid GitHub username or profile URL.');
     }
     if (response.status === 429 || response.status === 403) {
       throw new Error(errorDetail || 'GitHub API rate limit reached. Please try again later.');
     }
     if (response.status >= 500) {
-      throw new Error(errorDetail || "Couldn't reach GitHub right now. Please try again.");
+      throw new Error(errorDetail || 'GitHub is temporarily unavailable. Please try again.');
     }
 
     throw new Error(errorDetail || 'An unexpected error occurred. Please try again.');
@@ -72,29 +73,29 @@ export async function getGithubRepositories(username) {
       },
     });
   } catch (networkError) {
-    throw new Error("Couldn't reach GitHub right now. Please try again.");
+    throw new Error('Unable to reach the analysis server. Check your connection and try again.');
   }
 
   if (!response.ok) {
     let errorDetail = '';
     try {
       const errorJson = await response.json();
-      errorDetail = errorJson.detail;
+      errorDetail = typeof errorJson.detail === 'string' ? errorJson.detail : '';
     } catch {
       // response wasn't JSON
     }
 
     if (response.status === 404) {
-      throw new Error(errorDetail || 'GitHub user not found.');
+      throw new Error(errorDetail || 'GitHub profile not found. Check the username or profile URL.');
     }
-    if (response.status === 400) {
+    if (response.status === 400 || response.status === 422) {
       throw new Error(errorDetail || 'Invalid GitHub username.');
     }
     if (response.status === 429 || response.status === 403) {
       throw new Error(errorDetail || 'GitHub API rate limit reached. Please try again later.');
     }
     if (response.status >= 500) {
-      throw new Error(errorDetail || "Couldn't reach GitHub right now. Please try again.");
+      throw new Error(errorDetail || 'GitHub is temporarily unavailable. Please try again.');
     }
 
     throw new Error(errorDetail || 'An unexpected error occurred while fetching repositories.');
@@ -126,26 +127,26 @@ export async function analyzeGithubUser(username, roastLevel = 'brutal') {
       body: JSON.stringify({ roast_level: roastLevel }),
     });
   } catch (networkError) {
-    throw new Error("Couldn't reach AI analysis service. Please check your connection and try again.");
+    throw new Error('Unable to reach the analysis server. Check your connection and try again.');
   }
 
   if (!response.ok) {
     let errorDetail = '';
     try {
       const errorJson = await response.json();
-      errorDetail = errorJson.detail;
+      errorDetail = typeof errorJson.detail === 'string' ? errorJson.detail : '';
     } catch {
       // response wasn't JSON
     }
 
     if (response.status === 404) {
-      throw new Error(errorDetail || 'GitHub user not found.');
+      throw new Error(errorDetail || 'GitHub profile not found. Check the username or profile URL.');
     }
     if (response.status === 429) {
       throw new Error(errorDetail || 'AI analysis rate limit reached. Please try again later.');
     }
     if (response.status >= 500) {
-      throw new Error(errorDetail || 'AI service error. Check OpenRouter API configuration.');
+      throw new Error(errorDetail || 'The AI analysis service is temporarily unavailable. Please try again.');
     }
 
     throw new Error(errorDetail || 'Failed to complete AI analysis. Please try again.');

@@ -5,15 +5,15 @@ export default function StrengthsWeaknesses({ strengths = [], weaknesses = [] })
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Strengths Section */}
-      <div className="space-y-3">
+      <div className="space-y-3.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xl">💪</span>
-            <h3 className="text-base sm:text-lg font-black text-slate-100 tracking-tight">
+            <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
               Your Strengths
             </h3>
           </div>
-          <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/40">
+          <span className="text-xs font-mono font-bold text-[#A855F7] bg-[rgba(63,13,99,0.40)] px-2.5 py-0.5 rounded-lg border border-[rgba(168,85,247,0.25)]">
             {safeStrengths.length} Verified Signals
           </span>
         </div>
@@ -22,16 +22,16 @@ export default function StrengthsWeaknesses({ strengths = [], weaknesses = [] })
           {safeStrengths.map((item, idx) => (
             <div
               key={idx}
-              className="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-emerald-900/30 hover:border-emerald-700/50 transition-all flex items-start gap-4 shadow-sm"
+              className="p-4 sm:p-5 rounded-2xl glass-panel-interactive flex items-start gap-4"
             >
-              <div className="shrink-0 w-8 h-8 rounded-xl bg-emerald-950/80 border border-emerald-700/50 flex items-center justify-center text-xs font-mono font-bold text-emerald-300">
+              <div className="shrink-0 w-8 h-8 rounded-xl bg-[rgba(63,13,99,0.60)] border border-[rgba(168,85,247,0.40)] flex items-center justify-center text-xs font-mono font-black text-white shadow-sm">
                 0{idx + 1}
               </div>
               <div className="space-y-1">
-                <h4 className="text-sm font-bold text-slate-100">
+                <h4 className="text-sm font-bold text-white tracking-wide">
                   {item.title}
                 </h4>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-xs text-[#C4B5D4] leading-relaxed">
                   {item.description}
                 </p>
               </div>
@@ -39,7 +39,7 @@ export default function StrengthsWeaknesses({ strengths = [], weaknesses = [] })
           ))}
 
           {safeStrengths.length === 0 && (
-            <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800 text-xs text-slate-400">
+            <div className="p-4 rounded-xl glass-panel-subtle text-xs text-[#C4B5D4]">
               No distinct strengths identified from repository dataset.
             </div>
           )}
@@ -47,15 +47,15 @@ export default function StrengthsWeaknesses({ strengths = [], weaknesses = [] })
       </div>
 
       {/* Weaknesses Section */}
-      <div className="space-y-3">
+      <div className="space-y-3.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xl">⚠️</span>
-            <h3 className="text-base sm:text-lg font-black text-slate-100 tracking-tight">
+            <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
               Your Weaknesses
             </h3>
           </div>
-          <span className="text-xs font-mono font-bold text-rose-400 bg-rose-950/40 px-2 py-0.5 rounded border border-rose-800/40">
+          <span className="text-xs font-mono font-bold text-[#C4B5D4] bg-[rgba(63,13,99,0.40)] px-2.5 py-0.5 rounded-lg border border-[rgba(168,85,247,0.25)]">
             {safeWeaknesses.length} Critical Areas
           </span>
         </div>
@@ -64,16 +64,16 @@ export default function StrengthsWeaknesses({ strengths = [], weaknesses = [] })
           {safeWeaknesses.map((item, idx) => (
             <div
               key={idx}
-              className="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-rose-900/30 hover:border-rose-700/50 transition-all flex items-start gap-4 shadow-sm"
+              className="p-4 sm:p-5 rounded-2xl glass-panel-interactive flex items-start gap-4"
             >
-              <div className="shrink-0 w-8 h-8 rounded-xl bg-rose-950/80 border border-rose-700/50 flex items-center justify-center text-xs font-mono font-bold text-rose-300">
+              <div className="shrink-0 w-8 h-8 rounded-xl bg-[rgba(109,40,168,0.30)] border border-[rgba(168,85,247,0.35)] flex items-center justify-center text-xs font-mono font-black text-[#C4B5D4] shadow-sm">
                 0{idx + 1}
               </div>
               <div className="space-y-1">
-                <h4 className="text-sm font-bold text-slate-100">
+                <h4 className="text-sm font-bold text-white tracking-wide">
                   {item.title}
                 </h4>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-xs text-[#C4B5D4] leading-relaxed">
                   {item.description}
                 </p>
               </div>
@@ -81,7 +81,7 @@ export default function StrengthsWeaknesses({ strengths = [], weaknesses = [] })
           ))}
 
           {safeWeaknesses.length === 0 && (
-            <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800 text-xs text-slate-400">
+            <div className="p-4 rounded-xl glass-panel-subtle text-xs text-[#C4B5D4]">
               No distinct weaknesses identified from repository dataset.
             </div>
           )}

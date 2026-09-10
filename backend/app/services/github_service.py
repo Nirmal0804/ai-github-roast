@@ -32,6 +32,9 @@ def normalize_github_input(value: str) -> str:
     if not cleaned:
         raise ValueError("GitHub username or profile URL cannot be empty.")
 
+    if len(cleaned) > 255:
+        raise ValueError("Input exceeds maximum allowed length of 255 characters.")
+
     lower_val = cleaned.lower()
 
     # Detect if input is a URL or begins with a domain

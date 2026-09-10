@@ -12,7 +12,12 @@ export function getAnalysisHistory() {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed;
+    return parsed.filter((item) => (
+      item &&
+      typeof item === 'object' &&
+      typeof item.username === 'string' &&
+      typeof item.overall_score === 'number'
+    ));
   } catch (err) {
     console.warn('Failed to parse analysis history from localStorage:', err);
     return [];

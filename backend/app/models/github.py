@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 class ValidateGithubRequest(BaseModel):
     """Request payload for GitHub username/URL validation."""
-    input: str = Field(..., description="GitHub username or profile URL", min_length=1)
+    input: str = Field(..., description="GitHub username or profile URL", min_length=1, max_length=255)
 
 
 class GithubProfile(BaseModel):

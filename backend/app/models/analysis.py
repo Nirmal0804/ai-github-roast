@@ -100,7 +100,17 @@ class DeveloperAnalysis(BaseModel):
 
 class AnalyzeGithubRequest(BaseModel):
     """Optional payload for configuring analysis options such as roast level."""
-    roast_level: Optional[str] = Field(default="brutal", description="Roast intensity: friendly, brutal, nuclear")
+    roast_level: Optional[str] = Field(default="brutal", description="Roast intensity: friendly, brutal, nuclear", max_length=20)
+
+    @field_validator("roast_level")
+    @classmethod
+    def validate_roast_level(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            cleaned = v.strip().lower()
+            if cleaned not in ("friendly", "brutal", "nuclear"):
+                raise ValueError("roast_level must be one of: 'friendly', 'brutal', 'nuclear'")
+            return cleaned
+        return "brutal"
 
 
 class AnalyzeGithubResponse(BaseModel):

@@ -6,8 +6,6 @@ export default function RoastLevelSelector({ value, onChange, disabled = false }
       name: 'Friendly',
       tagline: 'Keep it playful.',
       badge: 'Gentle sarcasm & encouragement',
-      activeColor: 'border-emerald-500/60 bg-emerald-950/30 text-emerald-300 shadow-emerald-950/40',
-      activeRing: 'ring-emerald-500/40',
     },
     {
       id: 'brutal',
@@ -15,8 +13,6 @@ export default function RoastLevelSelector({ value, onChange, disabled = false }
       name: 'Brutal',
       tagline: "Tell me what I don't want to hear.",
       badge: 'Sharp, direct senior engineer roast',
-      activeColor: 'border-purple-500/60 bg-purple-950/40 text-purple-300 shadow-purple-950/40',
-      activeRing: 'ring-purple-500/40',
       recommended: true,
     },
     {
@@ -24,20 +20,18 @@ export default function RoastLevelSelector({ value, onChange, disabled = false }
       icon: '☢️',
       name: 'Nuclear',
       tagline: 'No mercy.',
-      badge: 'Maximum sarcasm & brutal truth',
-      activeColor: 'border-rose-500/60 bg-rose-950/40 text-rose-300 shadow-rose-950/40',
-      activeRing: 'ring-rose-500/40',
+      badge: 'Maximum sarcasm & unvarnished truth',
     },
   ];
 
   return (
-    <div className="w-full space-y-2.5">
+    <div className="w-full space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-          <span>🌶️</span>
+        <label className="text-xs font-bold uppercase tracking-wider text-[#C4B5D4] flex items-center gap-2">
+          <span className="text-[#A855F7]">🌶️</span>
           <span>Select Roast Intensity</span>
         </label>
-        <span className="text-[11px] text-slate-400">Affects roast tone, not factual metrics</span>
+        <span className="text-[11px] text-[#C4B5D4]/70 font-mono">Changes roast tone, not factual metrics</span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -49,29 +43,29 @@ export default function RoastLevelSelector({ value, onChange, disabled = false }
               type="button"
               disabled={disabled}
               onClick={() => onChange(lvl.id)}
-              className={`relative text-left p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2 select-none ${
+              className={`relative text-left p-4 rounded-xl border transition-all duration-300 cursor-pointer flex flex-col justify-between gap-2.5 select-none ${
                 isSelected
-                  ? `${lvl.activeColor} border-2 shadow-lg ring-2 ${lvl.activeRing}`
-                  : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:border-slate-700 hover:bg-slate-900/90'
+                  ? 'bg-gradient-to-br from-[rgba(63,13,99,0.75)] via-[rgba(109,40,168,0.60)] to-[rgba(168,85,247,0.35)] border-2 border-[#A855F7] shadow-[0_0_25px_rgba(168,85,247,0.30)] text-white'
+                  : 'bg-[rgba(63,13,99,0.18)] hover:bg-[rgba(63,13,99,0.30)] border-[rgba(168,85,247,0.20)] hover:border-[rgba(168,85,247,0.40)] text-[#C4B5D4]'
               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {lvl.recommended && (
-                <span className="absolute -top-2 right-3 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-600 text-white shadow-sm">
+                <span className="absolute -top-2.5 right-3 text-[10px] font-extrabold font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#A855F7] text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]">
                   Default
                 </span>
               )}
               <div className="flex items-center justify-between">
-                <span className="text-xl">{lvl.icon}</span>
-                <span className="text-xs font-mono font-bold capitalize text-slate-300">
+                <span className="text-2xl">{lvl.icon}</span>
+                <span className={`text-xs font-mono font-bold capitalize ${isSelected ? 'text-white' : 'text-[#C4B5D4]'}`}>
                   {lvl.name}
                 </span>
               </div>
 
               <div>
-                <p className="text-xs font-semibold text-slate-100">
+                <p className="text-xs font-bold text-white">
                   "{lvl.tagline}"
                 </p>
-                <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                <p className={`text-[11px] mt-1 leading-snug ${isSelected ? 'text-purple-200' : 'text-[#C4B5D4]/70'}`}>
                   {lvl.badge}
                 </p>
               </div>
