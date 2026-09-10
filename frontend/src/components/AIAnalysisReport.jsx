@@ -58,7 +58,7 @@ export default function AIAnalysisReport({
   return (
     <section aria-label="AI Roast Report" className="w-full space-y-6 animate-fade-in">
       {/* Export / Download Controls Bar */}
-      <DownloadReport targetElementId="ai-roast-report-export-area" username={username} />
+      <DownloadReport targetElementId="roast-report-export" username={username} />
 
       {/* Mode Switch: Developer Mode vs. Recruiter Mode */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl glass-panel border border-[rgba(168,85,247,0.22)] shadow-[0_10px_30px_rgba(0,0,0,0.30)] no-export">
@@ -100,7 +100,7 @@ export default function AIAnalysisReport({
 
       {/* Main Exportable Container */}
       <div
-        id="ai-roast-report-export-area"
+        id="roast-report-export"
         className="relative rounded-3xl glass-panel border border-[rgba(168,85,247,0.28)] p-6 sm:p-9 shadow-[0_25px_70px_rgba(0,0,0,0.45)] space-y-8 overflow-hidden"
       >
         {/* Ambient Glow accent inside report */}
@@ -112,6 +112,7 @@ export default function AIAnalysisReport({
             {profile?.avatar_url ? (
               <img
                 src={profile.avatar_url}
+                crossOrigin="anonymous"
                 alt={profile.name || username}
                 className="w-16 h-16 rounded-2xl border-2 border-[rgba(168,85,247,0.40)] object-cover shadow-[0_0_20px_rgba(109,40,168,0.35)]"
               />
@@ -188,7 +189,7 @@ export default function AIAnalysisReport({
                   </span>
                   
                   <div className="relative flex items-center justify-center">
-                    <svg className="w-40 h-40 transform -rotate-90">
+                    <svg className="w-40 h-40 transform -rotate-90" width="160" height="160" viewBox="0 0 160 160">
                       <circle
                         cx="80"
                         cy="80"

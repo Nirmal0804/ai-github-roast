@@ -38,7 +38,7 @@ export default function OneLineRoast({ oneLineRoast }) {
         <button
           type="button"
           onClick={handleCopy}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer select-none ${
+          className={`no-export inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer select-none ${
             copied
               ? 'bg-[rgba(168,85,247,0.35)] text-white border border-[#A855F7]'
               : 'bg-[rgba(63,13,99,0.35)] hover:bg-[rgba(109,40,168,0.50)] text-[#C4B5D4] hover:text-white border border-[rgba(168,85,247,0.25)] hover:border-[rgba(168,85,247,0.45)] active:scale-95'

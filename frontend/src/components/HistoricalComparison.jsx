@@ -67,7 +67,7 @@ export default function HistoricalComparison({ currentSnapshot }) {
         </div>
 
         {history.length > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="no-export flex items-center gap-2">
             {!showClearConfirm ? (
               <button
                 type="button"
@@ -278,7 +278,7 @@ export default function HistoricalComparison({ currentSnapshot }) {
                     <button
                       type="button"
                       onClick={() => setSelectedBaselineId(item.id)}
-                      className={`text-[10px] font-mono font-bold py-1.5 px-2 rounded-lg text-center transition-all cursor-pointer ${
+                      className={`no-export text-[10px] font-mono font-bold py-1.5 px-2 rounded-lg text-center transition-all cursor-pointer ${
                         isSelected
                           ? 'bg-[#A855F7] text-white shadow-sm'
                           : 'bg-[rgba(63,13,99,0.40)] text-[#C4B5D4] hover:text-white hover:bg-[rgba(109,40,168,0.40)]'
