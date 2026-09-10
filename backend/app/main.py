@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes import github
+
 # Load environment variables from .env file if available
 load_dotenv()
 
@@ -35,6 +37,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include API routers
+app.include_router(github.router, prefix="/api/github", tags=["github"])
 
 
 @app.get("/")
