@@ -111,10 +111,12 @@ export default function Home() {
       {/* Header / Navbar */}
       <header className="w-full relative z-20 border-b border-[rgba(168,85,247,0.15)] bg-[rgba(9,3,15,0.75)] backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6D28A8] to-[#3F0D63] border border-[rgba(168,85,247,0.30)] flex items-center justify-center text-sm shadow-[0_0_15px_rgba(168,85,247,0.35)]">
-              🔥
-            </div>
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="GitHub Roast Logo"
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-[rgba(168,85,247,0.40)] shadow-[0_0_20px_rgba(168,85,247,0.40)] bg-[rgba(9,3,15,0.90)] shrink-0"
+            />
             <span className="font-extrabold text-sm sm:text-base tracking-tight text-white">
               AI Roast <span className="text-[#A855F7]">My GitHub</span>
             </span>
