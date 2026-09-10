@@ -106,9 +106,10 @@ export async function getGithubRepositories(username) {
 /**
  * Trigger backend AI analysis for a developer using OpenRouter.
  * @param {string} username - GitHub username
+ * @param {string} [roastLevel='brutal'] - Roast intensity ('friendly', 'brutal', 'nuclear')
  * @returns {Promise<{username: string, analysis: object}>}
  */
-export async function analyzeGithubUser(username) {
+export async function analyzeGithubUser(username, roastLevel = 'brutal') {
   const trimmed = username?.trim();
   if (!trimmed) {
     throw new Error('Username is required for AI analysis.');
@@ -120,7 +121,9 @@ export async function analyzeGithubUser(username) {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ roast_level: roastLevel }),
     });
   } catch (networkError) {
     throw new Error("Couldn't reach AI analysis service. Please check your connection and try again.");

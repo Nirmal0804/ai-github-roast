@@ -3,6 +3,7 @@ import GitHubInput from '../components/GitHubInput.jsx';
 import ProfilePreview from '../components/ProfilePreview.jsx';
 import RepositorySummary from '../components/RepositorySummary.jsx';
 import AIAnalysisReport from '../components/AIAnalysisReport.jsx';
+import RoastLevelSelector from '../components/RoastLevelSelector.jsx';
 import ErrorMessage from '../components/ErrorMessage.jsx';
 import LoadingState from '../components/LoadingState.jsx';
 import {
@@ -10,6 +11,7 @@ import {
   getGithubRepositories,
   analyzeGithubUser,
 } from '../services/githubApi.js';
+import { saveAnalysisSnapshot } from '../utils/historyStorage.js';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
@@ -19,10 +21,12 @@ export default function Home() {
   const [repositoryData, setRepositoryData] = useState(null);
   const [lastInput, setLastInput] = useState('');
 
-  // AI Analysis state
+  // AI Analysis state & V3 controls
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState('');
   const [analysisData, setAnalysisData] = useState(null);
+  const [roastLevel, setRoastLevel] = useState('brutal');
+  const [currentSnapshot, setCurrentSnapshot] = useState(null);
 
   const handleAnalyze = async (input) => {
     const trimmed = input.trim();
@@ -61,10 +65,20 @@ export default function Home() {
     setIsAnalyzing(true);
     setAnalysisError('');
     setAnalysisData(null);
+    setCurrentSnapshot(null);
 
     try {
-      const result = await analyzeGithubUser(profileData.username);
+      const result = await analyzeGithubUser(profileData.username, roastLevel);
       setAnalysisData(result);
+
+      // Save compact snapshot locally for history & comparison
+      const snapshot = saveAnalysisSnapshot(
+        profileData.username,
+        result,
+        repositoryData,
+        roastLevel
+      );
+      setCurrentSnapshot(snapshot);
     } catch (err) {
       setAnalysisError(err.message || 'Failed to complete AI roast. Please check your OpenRouter configuration.');
     } finally {
@@ -76,6 +90,7 @@ export default function Home() {
     setProfileData(null);
     setRepositoryData(null);
     setAnalysisData(null);
+    setCurrentSnapshot(null);
     setError('');
     setAnalysisError('');
     setLastInput('');
@@ -158,33 +173,46 @@ export default function Home() {
 
               {/* Ready for AI Roast Banner Callout */}
               {!analysisData && !isAnalyzing && (
-                <div className="relative p-6 sm:p-7 rounded-2xl bg-gradient-to-r from-purple-950/70 via-slate-900 to-pink-950/50 border border-purple-500/40 flex flex-col sm:flex-row items-center justify-between gap-5 shadow-xl shadow-purple-950/30">
+                <div className="relative p-6 sm:p-7 rounded-2xl bg-gradient-to-b from-purple-950/70 via-slate-900 to-pink-950/40 border border-purple-500/40 space-y-6 shadow-xl shadow-purple-950/30">
                   <div className="space-y-1 text-center sm:text-left">
                     <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-purple-400">
                       <span>⚡</span>
-                      <span>Next Step</span>
+                      <span>Next Step: Select Roast Level &amp; Launch</span>
                     </span>
                     <h4 className="text-lg font-black text-slate-100">
                       Ready to face the AI Reviewer?
                     </h4>
                     <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
-                      We'll pass your verified repository dataset to Gemini 2.5 on OpenRouter to craft an evidence-grounded roast and constructive recommendations.
+                      We'll pass your verified repository dataset to Gemini 2.5 on OpenRouter to craft an evidence-grounded roast, developer scorecard, and practical action plan.
                     </p>
                   </div>
 
-                  <button
-                    onClick={handleRunAiRoast}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-purple-600 via-purple-500 to-pink-600 hover:from-purple-500 hover:to-pink-500 active:scale-[0.98] transition-all shadow-lg shadow-purple-900/40 hover:shadow-purple-700/50 whitespace-nowrap cursor-pointer shrink-0"
-                  >
-                    <span>Roast This Profile</span>
-                    <span>🔥</span>
-                  </button>
+                  {/* Roast Level Selector */}
+                  <RoastLevelSelector
+                    value={roastLevel}
+                    onChange={setRoastLevel}
+                    disabled={isAnalyzing}
+                  />
+
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
+                    <span className="text-xs text-slate-400 font-mono">
+                      Selected: <strong className="text-purple-300 uppercase">{roastLevel}</strong>
+                    </span>
+
+                    <button
+                      onClick={handleRunAiRoast}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-purple-600 via-purple-500 to-pink-600 hover:from-purple-500 hover:to-pink-500 active:scale-[0.98] transition-all shadow-lg shadow-purple-900/40 hover:shadow-purple-700/50 cursor-pointer"
+                    >
+                      <span>Roast This Profile ({roastLevel.toUpperCase()})</span>
+                      <span>🔥</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
               {/* Roast Generation Loading */}
               {isAnalyzing && (
-                <LoadingState message="Summoning the AI Roast Reviewer via OpenRouter..." />
+                <LoadingState message={`Summoning the AI Roast Reviewer (${roastLevel.toUpperCase()} mode) via OpenRouter...`} />
               )}
 
               {/* Roast Generation Error */}
@@ -201,6 +229,7 @@ export default function Home() {
                   analysisData={analysisData}
                   profile={profileData.profile}
                   repositoryData={repositoryData}
+                  currentSnapshot={currentSnapshot}
                 />
               )}
             </div>
