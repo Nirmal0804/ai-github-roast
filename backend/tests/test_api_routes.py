@@ -92,12 +92,12 @@ class TestApiRoutesIntegration(unittest.IsolatedAsyncioTestCase):
         mock_profile = {"login": "nirmal", "name": "Nirmal Patel"}
         mock_repos = []
 
-        with patch.dict(os.environ, {"OPENROUTER_API_KEY": ""}):
+        with patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
             with patch("app.api.routes.github.get_github_profile", return_value=mock_profile):
                 with patch("app.api.routes.github.fetch_user_repositories", return_value=mock_repos):
                     resp = await self.client.post("/api/github/nirmal/analyze")
                     self.assertEqual(resp.status_code, 500)
-                    self.assertIn("OpenRouter API key is not configured", resp.json()["detail"])
+                    self.assertIn("Gemini API key is not configured", resp.json()["detail"])
 
 
 if __name__ == "__main__":

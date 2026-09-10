@@ -1,24 +1,25 @@
 import json
 import os
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 import httpx
 from fastapi import HTTPException
+from google.genai.errors import APIError
 
 from app.main import app
 from app.models.analysis import DeveloperAnalysis, AnalyzeGithubResponse
 from app.services.ai_service import (
     analyze_github_data,
     build_analysis_prompt,
-    DEFAULT_OPENROUTER_MODEL,
+    DEFAULT_GEMINI_MODEL,
 )
 
 
 class TestStep5EndToEndAiIntegration(unittest.IsolatedAsyncioTestCase):
-    """Test suite specifically covering Step 5 end-to-end AI analysis requirements."""
+    """Test suite specifically covering Step 5 end-to-end AI analysis requirements with Google Gemini."""
 
     def setUp(self):
-        self.mock_api_key = "sk-or-v1-mock-step5-key"
+        self.mock_api_key = "mock-gemini-step5-key"
         self.profile = {
             "login": "octocat",
             "name": "The Octocat",
@@ -107,49 +108,56 @@ class TestStep5EndToEndAiIntegration(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(payload["TOP_REPOSITORIES"]), 1)
         self.assertEqual(payload["TOP_REPOSITORIES"][0]["name"], "spoon-knife")
 
-    async def test_max_tokens_and_model_used_in_request(self):
-        """Verify max_tokens is sent to OpenRouter to prevent token-reservation payment errors."""
-        with patch.dict(os.environ, {"OPENROUTER_API_KEY": self.mock_api_key, "OPENROUTER_MODEL": "google/gemini-2.5-flash"}):
+    async def test_gemini_model_and_config_used_in_request(self):
+        """Verify Gemini client configuration, model selection, and structured output parameters."""
+        with patch.dict(os.environ, {"GEMINI_API_KEY": self.mock_api_key, "GEMINI_MODEL": "gemini-2.5-flash"}):
             mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {
-                "choices": [{"message": {"content": json.dumps(self.valid_ai_response)}}]
-            }
+            mock_response.text = json.dumps(self.valid_ai_response)
 
-            with patch("httpx.AsyncClient.post", return_value=mock_response) as mock_post:
+            with patch("app.services.ai_service.genai.Client") as mock_client_cls:
+                mock_client = MagicMock()
+                mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
+                mock_client_cls.return_value = mock_client
+
                 res = await analyze_github_data(self.profile, self.summary, self.top_repos)
                 self.assertIsInstance(res, DeveloperAnalysis)
 
-                call_json = mock_post.call_args.kwargs["json"]
-                self.assertEqual(call_json["model"], "google/gemini-2.5-flash")
-                self.assertEqual(call_json["max_tokens"], 1500)
-                self.assertEqual(call_json["response_format"], {"type": "json_object"})
+                mock_client_cls.assert_called_with(api_key=self.mock_api_key)
+                call_args = mock_client.aio.models.generate_content.call_args
+                self.assertEqual(call_args.kwargs["model"], "gemini-2.5-flash")
+                config = call_args.kwargs["config"]
+                self.assertEqual(config.response_mime_type, "application/json")
+                self.assertEqual(config.response_schema, DeveloperAnalysis)
 
-    async def test_openrouter_402_insufficient_credits(self):
-        """Verify HTTP 402 Payment Required returns a clear HTTP 502 with actionable message."""
-        with patch.dict(os.environ, {"OPENROUTER_API_KEY": self.mock_api_key}):
-            mock_response = MagicMock()
-            mock_response.status_code = 402
-            mock_response.text = '{"error": {"message": "Requires more credits"}}'
+    async def test_gemini_429_quota_exhausted(self):
+        """Verify HTTP 429 Quota/Rate limit returns a clear HTTP 429 with actionable message."""
+        with patch.dict(os.environ, {"GEMINI_API_KEY": self.mock_api_key}):
+            with patch("app.services.ai_service.genai.Client") as mock_client_cls:
+                mock_client = MagicMock()
+                mock_client.aio.models.generate_content = AsyncMock(
+                    side_effect=APIError(429, {"error": {"message": "RESOURCE_EXHAUSTED", "status": "RESOURCE_EXHAUSTED"}})
+                )
+                mock_client_cls.return_value = mock_client
 
-            with patch("httpx.AsyncClient.post", return_value=mock_response):
+                with self.assertRaises(HTTPException) as ctx:
+                    await analyze_github_data(self.profile, self.summary, self.top_repos)
+                self.assertEqual(ctx.exception.status_code, 429)
+                self.assertIn("Gemini API rate limit reached", ctx.exception.detail)
+
+    async def test_gemini_404_model_not_found(self):
+        """Verify HTTP 404 from Gemini returns a clear HTTP 502 regarding model configuration."""
+        with patch.dict(os.environ, {"GEMINI_API_KEY": self.mock_api_key}):
+            with patch("app.services.ai_service.genai.Client") as mock_client_cls:
+                mock_client = MagicMock()
+                mock_client.aio.models.generate_content = AsyncMock(
+                    side_effect=APIError(404, {"error": {"message": "models/not-found is not found"}})
+                )
+                mock_client_cls.return_value = mock_client
+
                 with self.assertRaises(HTTPException) as ctx:
                     await analyze_github_data(self.profile, self.summary, self.top_repos)
                 self.assertEqual(ctx.exception.status_code, 502)
-                self.assertIn("OpenRouter payment required or insufficient credits", ctx.exception.detail)
-
-    async def test_openrouter_404_model_not_found(self):
-        """Verify HTTP 404 from OpenRouter returns a clear HTTP 502 regarding model configuration."""
-        with patch.dict(os.environ, {"OPENROUTER_API_KEY": self.mock_api_key}):
-            mock_response = MagicMock()
-            mock_response.status_code = 404
-            mock_response.text = '{"error": {"message": "No endpoints found"}}'
-
-            with patch("httpx.AsyncClient.post", return_value=mock_response):
-                with self.assertRaises(HTTPException) as ctx:
-                    await analyze_github_data(self.profile, self.summary, self.top_repos)
-                self.assertEqual(ctx.exception.status_code, 502)
-                self.assertIn("Configured OpenRouter model was not found", ctx.exception.detail)
+                self.assertIn("Configured Gemini model was not found", ctx.exception.detail)
 
     async def test_end_to_end_analyze_route_success(self):
         """Verify full POST /api/github/{username}/analyze endpoint responds with valid schema."""

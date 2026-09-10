@@ -4,11 +4,13 @@ import re
 from typing import Dict, Any, List, Tuple, Optional
 import httpx
 from fastapi import HTTPException, status
+from google import genai
+from google.genai import types, errors
 
 from app.models.analysis import DeveloperAnalysis
 
-OPENROUTER_API_BASE = "https://openrouter.ai/api/v1"
-DEFAULT_OPENROUTER_MODEL = "google/gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_OPENROUTER_MODEL = DEFAULT_GEMINI_MODEL
 
 
 def calculate_developer_league(overall_score: int) -> Tuple[str, int, int]:
@@ -421,91 +423,100 @@ async def analyze_github_data(
     top_repos: List[Dict[str, Any]],
     roast_level: str = "brutal",
 ) -> DeveloperAnalysis:
-    """Send structured GitHub data to OpenRouter and parse the analysis into DeveloperAnalysis."""
-    api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    """Send structured GitHub data to Google Gemini API and parse the analysis into DeveloperAnalysis."""
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="OpenRouter API key is not configured. Please set OPENROUTER_API_KEY in the backend environment.",
+            detail="Gemini API key is not configured. Please set GEMINI_API_KEY in the backend environment.",
         )
 
-    model = os.getenv("OPENROUTER_MODEL", "").strip() or DEFAULT_OPENROUTER_MODEL
+    model = os.getenv("GEMINI_MODEL", "").strip() or DEFAULT_GEMINI_MODEL
     system_prompt, user_prompt = build_analysis_prompt(profile, summary, top_repos, roast_level=roast_level)
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "HTTP-Referer": "https://github.com/Nirmal0804/ai-github-roast",
-        "X-Title": "AI Roast My GitHub",
-        "Content-Type": "application/json",
-    }
-
-    request_body = {
-        "model": model,
-        "response_format": {"type": "json_object"},
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        "temperature": 0.7,
-        "max_tokens": 1500,
-    }
-
-    url = f"{OPENROUTER_API_BASE}/chat/completions"
-
     try:
-        async with httpx.AsyncClient(timeout=45.0) as client:
-            response = await client.post(url, headers=headers, json=request_body)
-    except httpx.RequestError:
+        client = genai.Client(api_key=api_key)
+        config = types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            response_mime_type="application/json",
+            response_schema=DeveloperAnalysis,
+            temperature=0.7,
+        )
+        response = await client.aio.models.generate_content(
+            model=model,
+            contents=user_prompt,
+            config=config,
+        )
+    except errors.APIError as err:
+        err_str = str(err).lower()
+        status_code = getattr(err, "code", None)
+
+        if status_code == 429 or "resource_exhausted" in err_str or "quota" in err_str or "rate limit" in err_str:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Gemini API rate limit reached. Please try again later.",
+            )
+        if status_code in (401, 403) or "api_key_invalid" in err_str or "unauthorized" in err_str or "permission" in err_str:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Gemini authentication failed. Please verify your GEMINI_API_KEY configuration.",
+            )
+        if status_code == 404 or "not found" in err_str or "not_found" in err_str:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Configured Gemini model was not found. Please verify GEMINI_MODEL in backend/.env.",
+            )
+        if status_code and status_code >= 500:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Gemini AI service is temporarily unavailable. Please try again later.",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Gemini AI service returned an error. Please try again later.",
+        )
+    except (TimeoutError, httpx.TimeoutException):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Couldn't reach OpenRouter AI service right now. Please try again.",
+            detail="Couldn't reach Gemini AI service right now. Please try again.",
         )
-
-    if response.status_code in (401, 403):
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="OpenRouter authentication failed. Please verify your OPENROUTER_API_KEY configuration.",
-        )
-
-    if response.status_code == 429:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="OpenRouter API rate limit reached. Please try again later.",
-        )
-
-    if response.status_code == 402:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="OpenRouter payment required or insufficient credits. Please check your OpenRouter account.",
-        )
-
-    if response.status_code == 404:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Configured OpenRouter model was not found. Please verify OPENROUTER_MODEL in backend/.env.",
-        )
-
-    if response.status_code >= 500:
+    except Exception as exc:
+        err_msg = str(exc)
+        err_lower = err_msg.lower()
+        if "429" in err_msg or "resource_exhausted" in err_lower or "quota" in err_lower or "rate limit" in err_lower:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Gemini API rate limit reached. Please try again later.",
+            )
+        if "401" in err_msg or "403" in err_msg or "api_key" in err_lower or "unauthorized" in err_lower:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Gemini authentication failed. Please verify your GEMINI_API_KEY configuration.",
+            )
+        if "404" in err_msg or "not found" in err_lower:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Configured Gemini model was not found. Please verify GEMINI_MODEL in backend/.env.",
+            )
+        if "timeout" in err_lower:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Couldn't reach Gemini AI service right now. Please try again.",
+            )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="OpenRouter AI service is temporarily unavailable. Please try again later.",
+            detail="Gemini AI service encountered an unexpected error. Please try again.",
         )
 
-    if response.status_code != 200:
+    # 1. extract response text safely
+    raw_message = getattr(response, "text", None)
+    if not raw_message or not raw_message.strip():
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"OpenRouter returned unexpected status {response.status_code}. Please try again.",
+            detail="Malformed response received from Gemini AI service.",
         )
 
-    try:
-        data = response.json()
-        raw_message = data["choices"][0]["message"]["content"]
-    except (KeyError, IndexError, json.JSONDecodeError):
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Malformed response received from OpenRouter AI service.",
-        )
-
+    # 2. parse JSON, 3. validate with Pydantic model, 4. run fallback/repair
     try:
         parsed_dict = extract_json_payload(raw_message)
         populated_dict = populate_v3_fallbacks(parsed_dict, summary, roast_level)

@@ -6,7 +6,7 @@
 
 ## Overview
 
-**AI Roast My GitHub** evaluates a developer's public GitHub presence using observable repository metrics, code signals, and commit cadence. Powered by FastAPI, React, and Gemini 2.5 on OpenRouter, the application generates technical personality archetypes, multi-tier roast intensities, detailed strength/weakness audits, and recruiter summaries—all grounded strictly in verified repository facts.
+**AI Roast My GitHub** evaluates a developer's public GitHub presence using observable repository metrics, code signals, and commit cadence. Powered by FastAPI, React, and Google Gemini API (via the official `google-genai` SDK), the application generates technical personality archetypes, multi-tier roast intensities, detailed strength/weakness audits, and recruiter summaries—all grounded strictly in verified repository facts.
 
 ---
 
@@ -63,8 +63,8 @@ FastAPI + Uvicorn (Backend)
          ╱         ╲
         ╱           ╲
        ▼             ▼
-GitHub REST API   OpenRouter AI
-(Public Profile   (google/gemini-2.5-flash)
+GitHub REST API   Google Gemini API
+(Public Profile   (gemini-2.5-flash / gemini-3.6-flash)
  & Repositories)
 ```
 
@@ -80,8 +80,8 @@ The system uses an intentional, lightweight architecture:
 | Layer | Technologies |
 | :--- | :--- |
 | **Frontend** | React 18, Vite, Tailwind CSS, html2canvas, jsPDF |
-| **Backend** | Python 3.10+, FastAPI, Uvicorn, Pydantic V2, HTTPX, Python-Dotenv |
-| **AI Model** | Google Gemini 2.5 Flash via [OpenRouter](https://openrouter.ai/) |
+| **Backend** | Python 3.10+, FastAPI, Uvicorn, Pydantic V2, Google GenAI SDK (`google-genai`), HTTPX, Python-Dotenv |
+| **AI Model** | Google Gemini API (`gemini-2.5-flash` / `gemini-3.6-flash`) |
 | **Data Provider** | GitHub REST API v3 |
 | **Hosting (Target)** | Frontend: **Vercel** &bull; Backend: **Render** |
 
@@ -100,13 +100,14 @@ ai-github-roast/
 │   │   │   ├── analysis.py            # Pydantic models for scores, DNA, recruiter summaries
 │   │   │   └── github.py              # GitHub profile & repository models
 │   │   ├── services/
-│   │   │   ├── ai_service.py          # OpenRouter prompt generation, fallback repair, AI orchestration
+│   │   │   ├── ai_service.py          # Gemini prompt generation, structured output schema, fallback repair
 │   │   │   ├── github_service.py      # Input normalization & profile retrieval
 │   │   │   └── repository_service.py  # Repository fetching, pagination, and signal calculations
 │   │   └── main.py                    # FastAPI application, CORS, health check, exception handling
 │   ├── scripts/
-│   │   └── test_openrouter.py         # Connectivity test utility for OpenRouter
-│   ├── tests/                         # Full automated test suite (53 unit & integration tests)
+│   │   ├── test_gemini.py             # Connectivity test utility for Google Gemini API
+│   │   └── test_openrouter.py         # Connectivity test utility for OpenRouter (legacy)
+│   ├── tests/                         # Full automated test suite (62 unit & integration tests)
 │   ├── requirements.txt               # Backend Python dependencies
 │   └── .env.example                   # Backend environment template
 ├── frontend/
@@ -151,8 +152,8 @@ ai-github-roast/
 | `PORT` | Optional | `8000` | Port for the Uvicorn server |
 | `ALLOWED_ORIGINS` | Production | `http://localhost:5173` | Comma-separated list of allowed frontend origins (e.g. `https://your-app.vercel.app`) |
 | `GITHUB_TOKEN` | Optional | *None* | Personal Access Token to raise GitHub API rate limits (60 req/hr &rarr; 5,000 req/hr) |
-| `OPENROUTER_API_KEY` | **Required** | *None* | OpenRouter API Key for AI report generation |
-| `OPENROUTER_MODEL` | Optional | `google/gemini-2.5-flash` | Configured LLM model identifier |
+| `GEMINI_API_KEY` | **Required** | *None* | Google Gemini API key for AI report generation |
+| `GEMINI_MODEL` | Optional | `gemini-2.5-flash` | Configured Gemini model identifier (`gemini-2.5-flash` or `gemini-3.6-flash`) |
 
 ### Frontend (`frontend/.env`)
 
@@ -160,7 +161,7 @@ ai-github-roast/
 | :--- | :---: | :--- | :--- |
 | `VITE_API_BASE_URL` | Production | `http://localhost:8000` | Base URL of the deployed FastAPI backend |
 
-> **Security Notice**: Never put private credentials (`OPENROUTER_API_KEY` or `GITHUB_TOKEN`) into frontend files or `.env` templates. All LLM and authenticated GitHub queries run exclusively on the backend.
+> **Security Notice**: Never put private credentials (`GEMINI_API_KEY` or `GITHUB_TOKEN`) into frontend files or `.env` templates. All LLM and authenticated GitHub queries run exclusively on the backend.
 
 ---
 
@@ -169,7 +170,7 @@ ai-github-roast/
 ### 1. Prerequisites
 - Python 3.10 or higher
 - Node.js 18 or higher (npm included)
-- An OpenRouter API key
+- A Google Gemini API key ([Google AI Studio](https://aistudio.google.com/))
 
 ### 2. Backend Setup
 ```bash
@@ -189,10 +190,10 @@ pip install -r requirements.txt
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your OPENROUTER_API_KEY
+# Edit .env with your GEMINI_API_KEY
 
-# Verify OpenRouter connectivity
-python scripts/test_openrouter.py
+# Verify Gemini API connectivity
+python scripts/test_gemini.py
 
 # Start backend dev server
 uvicorn app.main:app --reload
@@ -238,7 +239,7 @@ Fetches and aggregates repository metrics (stars, active repos, README coverage,
 - **Response**: `200 OK` with summary signals, top 5 ranked repositories, and repository lists.
 
 ### `POST /api/github/{username}/analyze`
-Orchestrates profile retrieval, repository processing, and Gemini 2.5 analysis on OpenRouter.
+Orchestrates profile retrieval, repository processing, and Gemini AI analysis.
 - **Request Body** (optional):
   ```json
   { "roast_level": "brutal" }
@@ -260,8 +261,8 @@ Orchestrates profile retrieval, repository processing, and Gemini 2.5 analysis o
    - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
    - **Health Check Path**: `/health`
 4. Set Environment Variables:
-   - `OPENROUTER_API_KEY`: Your real key
-   - `OPENROUTER_MODEL`: `google/gemini-2.5-flash`
+   - `GEMINI_API_KEY`: Your real Gemini API key
+   - `GEMINI_MODEL`: `gemini-2.5-flash` (or `gemini-3.6-flash`)
    - `ALLOWED_ORIGINS`: `https://your-frontend.vercel.app`
    - `GITHUB_TOKEN`: *(Optional)* GitHub personal access token for higher limits
 
@@ -284,21 +285,21 @@ Orchestrates profile retrieval, repository processing, and Gemini 2.5 analysis o
 - **Prompt Injection Defense**: Repository descriptions, READMEs, bios, and usernames are strictly isolated as untrusted user data. The model explicitly ignores embedded commands or attempts to override instructions.
 - **CORS Hardening**: Production defaults disallow wildcard origins (`*`). Allowed origins are configured via `ALLOWED_ORIGINS` and restricted to `GET`, `POST`, and `OPTIONS` methods.
 - **Input Bounding**: GitHub usernames/URLs are capped at 255 characters. Repository descriptions are truncated before LLM prompt submission to prevent payload bloating and token exhaustion.
-- **Rate Limit & Error Isolation**: Provider errors (401, 402, 429, 5xx) from GitHub or OpenRouter are caught cleanly and returned as actionable client error messages. Raw Python tracebacks and internal file paths are never exposed.
+- **Rate Limit & Error Isolation**: Provider errors (401, 403, 404, 429, 5xx) from GitHub or Gemini are caught cleanly and returned as actionable client error messages. Raw Python tracebacks and internal file paths are never exposed.
 - **Safe State Handling**: LocalStorage reads are validated to isolate corrupt snapshots. Report downloads catch canvas errors gracefully without crashing the UI.
 
 ---
 
 ## Testing
 
-The backend includes a comprehensive automated test suite covering input normalization, repository calculations, OpenRouter parsing, prompt construction, CORS parsing, and error handling.
+The backend includes a comprehensive automated test suite covering input normalization, repository calculations, Gemini structured output parsing, prompt construction, CORS parsing, and error handling.
 
 ```bash
 cd backend
 python -m unittest discover -s tests -v
 ```
 
-**Status**: **53 / 53 tests passing** (45 regression & feature tests + 8 production hardening tests).
+**Status**: **62 / 62 unit & integration tests passing** (+ live integration test suite `test_gemini_live.py`).
 
 To verify the frontend production build:
 ```bash
